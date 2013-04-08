@@ -1,0 +1,312 @@
+Getting started
+
+require([
+  "dojox/mobile/parser", // (Optional) This mobile app uses declarative programming with fast mobile parser
+  "dojox/mobile",        // (Required) This is a mobile app.
+  "dojox/mobile/compat"  // (Optional) This mobile app supports running on desktop browsers
+], function(parser, mobile, compat){ Optional module aliases that can then be referenced inside callback block
+  // Do something with mobile api's.  At this point Dojo Mobile api's are ready for use.
+);
+
+Applying a Mobile Device Theme Using CSS
+
+<link rel="stylesheet" type="text/css" href="dojox/mobile/themes/iphone/iphone.css"></link>
+
+Automatically Applying Mobile Device Themes Using CSS
+
+You can also use Dojo Mobile’s automatic device detection and theme loading by adding the “dojox/mobile/deviceTheme” to your requires list. When automatic device detection and theme loading is enabled, Dojo Mobile will insert appropriate stylesheet links dynamically into the header, based on user agent sniffing.
+
+Typical Use
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+ <html>
+   <head>
+     <meta name="viewport" content="width=device-width,initial-scale=1,
+    maximum-scale=1,minimum-scale=1,user-scalable=no"/>
+     <meta name="apple-mobile-web-app-capable" content="yes" />
+     <link href="dojox/mobile/themes/iphone/iphone.css" rel="stylesheet"></link>
+     <script src="dojo/dojo.js" djConfig="parseOnLoad: true"></script>
+     <script>
+       require([
+         "dojox/mobile/parser",    // This mobile app uses declarative programming with fast mobile parser
+         "dojox/mobile",           // This is a mobile app.
+       ]); // Skip module alias and function block because we're not doing anything special...
+     </script>
+   </head>
+   <body>
+     <div id="foo" dojoType="dojox.mobile.View">
+       <h1 dojoType="dojox.mobile.Heading">View 1</h1>
+       <ul dojoType="dojox.mobile.RoundRectList">
+         <li dojoType="dojox.mobile.ListItem" moveTo="bar" label="Hello"
+       icon="dojox/mobile/tests/images/i-icon-1.png"></li>
+       </ul>
+     </div>
+
+     <div id="bar" dojoType="dojox.mobile.View">
+      <h1 dojoType="dojox.mobile.Heading" back="Home" moveTo="foo">View 2</h1>
+       <ul dojoType="dojox.mobile.RoundRectList">
+         <li dojoType="dojox.mobile.ListItem" label="World"
+       icon="dojox/mobile/tests/images/i-icon-2.png"></li>
+       </ul>
+     </div>
+   </body>
+ </html>
+
+
+Dynamic Content Loading
+
+Before or after performing a view transition, sometimes you may want to create a new target view content dynamically using an ajax call.
+
+The “url” property of _ItemBase
+
+The _ItemBase class has a “url” property that allows you to specify an html fragment page or a JSON data that will become the new view content after performing the view transition. The content is loaded either with a sync XHR call or an async XHR call according to the value of the “sync” property. The _ItemBase class is a base class of ListItem, IconItem, TabBarButton, ToolBarButton, and IconMenuItem. You can use the url property from those subclasses.
+
+If you perform a transition, a new view is created as a sibling of the current view by default. If you want to add it into another node, you can specify its node id with the urlTarget property.
+
+<ul data-dojo-type="dojox.mobile.RoundRectList">
+   <li data-dojo-type="dojox.mobile.ListItem" data-dojo-props='transition:"slide", url:"view1.html"'>
+      External View #1 (sync)
+   </li>
+   <li data-dojo-type="dojox.mobile.ListItem" data-dojo-props='transition:"flip", url:"view2.html", synch:false'>
+      External View #2 (async)
+   </li>
+</ul>
+
+Create a View from Html Fragment
+
+<div data-dojo-type="dojox.mobile.View">
+    <h1 data-dojo-type="dojox.mobile.Heading" data-dojo-props='back:"Home", moveTo:"foo"'>view1.html</h1>
+    <ul data-dojo-type="dojox.mobile.EdgeToEdgeList">
+    <li data-dojo-type="dojox.mobile.ListItem">
+        Jack Coleman
+    </li>
+    <li data-dojo-type="dojox.mobile.ListItem">
+        James Evans
+    </li>
+    <li data-dojo-type="dojox.mobile.ListItem">
+        Jason Griffin
+    </li>
+    </ul>
+</div>
+
+Create a View from JSON data
+
+{
+  "dojox.mobile.View": {
+    "dojox.mobile.Heading": {
+      "@back": "Home",
+      "@moveTo": "foo",
+      "@label": "view1.json"
+    },
+    "dojox.mobile.EdgeToEdgeList": {
+      "dojox.mobile.ListItem": [{
+        "@label": "Jack Coleman"
+      }, {
+        "@label": "James Evans"
+      }, {
+        "@label": "Jason Griffin"
+      }]
+    }
+  }
+}
+
+ListItem Actions
+
+<li data-dojo-type="dojox.mobile.ListItem" data-dojo-props='moveTo:"#", onClick:myAction'>
+   Update View
+</li>
+
+Update Existing View Content and Perform Transition
+
+myAction1 = function(){
+    var rect = registry.byId("rect1");
+    rect.containerNode.innerHTML = new Date();
+    this.transitionTo("view1");
+}
+
+<div id="view1" data-dojo-type="dojox.mobile.View">
+   <h1 data-dojo-type="dojox.mobile.Heading" data-dojo-props='back:"Home", moveTo:"home"'>Current Status</h1>
+   <h2 data-dojo-type="dojox.mobile.RoundRectCategory">Local Time</h2>
+   <div id="rect1" data-dojo-type="dojox.mobile.RoundRect" data-dojo-props='shadow:true'></div>
+</div>
+
+Load Content into Existing View and Perform Transition
+
+myAction2 = function(){
+    var view2 = registry.byId("view2"); // destination view
+    var listItem = this;
+    var prog = ProgressIndicator.getInstance();
+    win.body().appendChild(prog.domNode);
+    prog.start();
+    view2.destroyDescendants();
+
+    var url = "http://..."; // or var url = listItem.url;
+    dojo.xhrGet({
+        url: url,
+        handleAs: "text",
+        load: function(response, ioArgs){
+            var container = view2.containerNode;
+            container.innerHTML = response;
+            parser.parse(container);
+            prog.stop();
+            listItem.transitionTo("view2");
+        }
+    });
+}
+
+
+<div id="view2" data-dojo-type="dojox.mobile.View"></div>
+
+Perform Transition and Load Content into Existing View
+
+myAction3 = function(){
+    var view3 = registry.byId("view3"); // destination view
+    var listItem = this;
+    var prog = ProgressIndicator.getInstance();
+    win.body().appendChild(prog.domNode);
+    prog.start();
+    view3.destroyDescendants();
+    listItem.transitionTo("view3");
+
+    var url = "http://..."; // or var url = listItem.url;
+    dojo.xhrGet({
+        url: url,
+        handleAs: "text",
+        load: function(response, ioArgs){
+            var container = view3.containerNode;
+            container.innerHTML = response;
+            parser.parse(container);
+            prog.stop();
+        }
+    });
+}
+
+<div id="view3" data-dojo-type="dojox.mobile.View"></div>
+
+Create a New View and Perform Transition
+
+myAction4 = function(){
+    if(!registry.byId("view4")){
+        var view4 = new dojox.mobile.View({
+            id: "view4",
+            selected: true
+        }, domConstruct.create("DIV", null, win.body()));
+        view4.startup();
+
+        var heading1 = new dojox.mobile.Heading({
+            label: "Dynamic View",
+            back: "Home",
+            moveTo: "home"
+        });
+        heading1.placeAt(view4.containerNode);
+        heading1.startup();
+
+        var categ1 = new dojox.mobile.RoundRectCategory({
+            label: "Documents"
+        });
+        categ1.placeAt(view4.containerNode);
+        categ1.startup();
+
+        var list1 = new dojox.mobile.RoundRectList();
+        list1.placeAt(view4.containerNode);
+        list1.startup();
+
+        var counter = 4;
+        for(var i = 1; i <= 3; i++){
+            var item1 = new dojox.mobile.ListItem({
+                icon: "images/i-icon-"+i+".png",
+                label: "Document 000"+counter
+            });
+            item1.placeAt(list1.containerNode);
+            item1.startup();
+            counter++;
+        }
+    }
+    this.transitionTo("view4");
+}
+
+
+Listening to Transition Events
+
+connetct / pub r sub
+
+connect
+
+View widget has five stub methods, onStartView, onBeforeTransitionIn, onAfterTransitionIn, onBeforeTransitionOut, and onAfterTransitionOut, to which you can connect.\
+
+dojo.connect(view1, "onStartView", null, function(){
+    console.log("startView: view="+this);
+});
+
+onBeforeTransitionIn(moveTo, dir, transition, context, method)
+
+moveTo - The destination view id to transition the current view to.
+dir - The transition direction. If 1, transition forward. If -1, transition backward.
+transition - The name of transition to perform. Ex. “slide”
+context - The object that the callback function will receive as “this”.
+method - A callback function that is called when the transition has finished.
+
+dojo.connect(view1, "onBeforeTransitionIn", null,
+   function(moveTo, dir, transition, context, method){
+       print("onBeforeTransitionIn");
+});
+
+onAfterTransitionIn(moveTo, dir, transition, context, method)
+
+moveTo - The destination view id to transition the current view to.
+dir - The transition direction. If 1, transition forward. If -1, transition backward.
+transition - The name of transition to perform. Ex. “slide”
+context - The object that the callback function will receive as “this”.
+method - A callback function that is called when the transition has finished.
+
+dojo.connect(view1, "onAfterTransitionIn", null,
+   function(moveTo, dir, transition, context, method){
+      print("afterTransitionIn");
+});
+
+onBeforeTransitionOut(moveTo, dir, transition, context, method)
+
+moveTo - The destination view id to transition the current view to.
+dir - The transition direction. If 1, transition forward. If -1, transition backward.
+transition - The name of transition to perform. Ex. “slide”
+context - The object that the callback function will receive as “this”.
+method - A callback function that is called when the transition has finished.
+
+dojo.connect(view1, "onBeforeTransitionOut", null,
+   function(moveTo, dir, transition, context, method){
+      print("onBeforeTransitionOut");
+});
+
+onAfterTransitionOut(moveTo, dir, transition, context, method)
+
+moveTo - The destination view id to transition the current view to.
+dir - The transition direction. If 1, transition forward. If -1, transition backward.
+transition - The name of transition to perform. Ex. “slide”
+context - The object that the callback function will receive as “this”.
+method - A callback function that is called when the transition has finished.
+
+dojo.connect(view1, "onAfterTransitionOut", null,
+   function(moveTo, dir, transition, context, method){
+      print("afterTransitionOut");
+});
+
+subscribe
+
+dojo.subscribe("/dojox/mobile/startView", function(view){
+    console.log("startView: view="+view);
+});
+
+Cross-browser Support
+
+dojox/mobile supports not only webkit-based mobile browsers, but also non-CSS3 desktop PC browsers such as IE and (older) Firefox. A CSS3 compatibility module (dojox/mobile/compat) is provided to support non-CSS3 browsers. dojox/mobile/compat is not necessary for webkit-based browsers, hence, it does not degrade the performance of mobile browsers.
+
+require(["dojox/mobile", "dojox/mobile/compat"], function(mobile, compat){
+    // Do something with dojo mobile...
+});
+
+dojo.require("dojox.mobile");
+dojo.requireIf(!dojo.isWebKit, "dojox.mobile.compat");
+
+
+
+
